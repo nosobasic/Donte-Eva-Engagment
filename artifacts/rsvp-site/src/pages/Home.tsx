@@ -1,9 +1,7 @@
 import * as React from "react";
 import RsvpForm from "@/components/RsvpForm";
-import { useGetSheetUrl } from "@workspace/api-client-react";
 
 export default function Home() {
-  const { data: sheetData } = useGetSheetUrl();
 
   return (
     <div className="min-h-[100dvh] w-full flex flex-col bg-background font-sans overflow-x-hidden selection:bg-primary/20">
@@ -58,19 +56,6 @@ export default function Home() {
             Kindly respond by July 15, 2025
           </p>
           
-          {sheetData?.url && (
-            <div className="pt-12">
-              <a 
-                href={sheetData.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-muted-foreground hover:text-primary transition-colors underline underline-offset-4"
-                data-testid="link-sheet"
-              >
-                View Responses
-              </a>
-            </div>
-          )}
         </div>
       </footer>
     </div>

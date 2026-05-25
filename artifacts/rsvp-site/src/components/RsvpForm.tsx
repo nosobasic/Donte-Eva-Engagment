@@ -2,7 +2,7 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useSubmitRsvp } from "@workspace/api-client-react";
+import { appendRsvpRow } from "@/lib/googleSheets";
 
 import {
   Form,
@@ -30,7 +30,8 @@ type RsvpFormValues = z.infer<typeof rsvpSchema>;
 
 export default function RsvpForm() {
   const [isSuccess, setIsSuccess] = React.useState(false);
-  const submitRsvp = useSubmitRsvp();
+  const [isPending, setIsPending] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
   const form = useForm<RsvpFormValues>({
     resolver: zodResolver(rsvpSchema),
@@ -46,25 +47,25 @@ export default function RsvpForm() {
 
   const watchAttending = form.watch("attending");
 
-  const onSubmit = (values: RsvpFormValues) => {
-    submitRsvp.mutate(
-      { data: values },
-      {
-        onSuccess: () => {
-          setIsSuccess(true);
-        },
-        onError: (err) => {
-          console.error(err);
-        },
-      }
-    );
+  const onSubmit = async (values: RsvpFormValues) => {
+    setIsPending(true);
+    setError(null);
+    try {
+      await appendRsvpRow(values);
+      setIsSuccess(true);
+    } catch (err) {
+      console.error(err);
+      setError("There was an error submitting your RSVP. Please try again.");
+    } finally {
+      setIsPending(false);
+    }
   };
 
   if (isSuccess) {
     return (
       <div className="flex flex-col items-center justify-center text-center space-y-6 py-12 px-4 animate-in fade-in zoom-in duration-700">
         <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-2">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinelinejoin="round">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20 6L9 17l-5-5"/>
           </svg>
         </div>
@@ -227,19 +228,19 @@ export default function RsvpForm() {
             />
           </div>
 
-          {submitRsvp.isError && (
+          {error && (
             <div className="p-4 rounded-md bg-destructive/10 text-destructive text-sm" data-testid="status-error">
-              There was an error submitting your RSVP. Please try again.
+              {error}
             </div>
           )}
 
-          <Button 
-            type="submit" 
-            className="w-full h-14 text-lg font-serif tracking-wide uppercase transition-all duration-300 hover:shadow-lg" 
-            disabled={submitRsvp.isPending}
+          <Button
+            type="submit"
+            className="w-full h-14 text-lg font-serif tracking-wide uppercase transition-all duration-300 hover:shadow-lg"
+            disabled={isPending}
             data-testid="button-submit"
           >
-            {submitRsvp.isPending ? "Sending..." : "Send RSVP"}
+            {isPending ? "Sending..." : "Send RSVP"}
           </Button>
         </form>
       </Form>
