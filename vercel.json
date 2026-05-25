@@ -1,0 +1,6 @@
+{
+  "buildCommand": "pnpm --filter @workspace/rsvp-site run build",
+  "outputDirectory": "artifacts/rsvp-site/dist/public",
+  "installCommand": "pnpm install",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
