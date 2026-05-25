@@ -5,9 +5,6 @@
  * Engagement Party RSVP API
  * OpenAPI spec version: 0.1.0
  */
-export interface HealthStatus {
-  status: string;
-}
 
 export interface RsvpInput {
   /** @minLength 1 */
@@ -24,17 +21,3 @@ export interface RsvpInput {
   /** @nullable */
   message?: string | null;
 }
-
-export interface RsvpResult {
-  success: boolean;
-  message: string;
-}
-
-export interface SheetUrlResult {
-  url: string;
-}
-
-export interface ErrorResponse {
-  error: string;
-}
-

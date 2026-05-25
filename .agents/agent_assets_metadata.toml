@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "-Typf82dudQPWxD_j7mcS"
+uri = "file://artifacts/rsvp-site/public/hero-floral.png"
+type = "image"
+title = "romantic floral background"
