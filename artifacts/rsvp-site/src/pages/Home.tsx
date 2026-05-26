@@ -23,7 +23,7 @@ export default function Home() {
               Please join us to celebrate the engagement of
             </p>
             <h1 className="text-6xl md:text-8xl lg:text-9xl font-serif text-foreground tracking-tight py-4">
-              Donte & Eva
+              Donté & Eva
             </h1>
           </div>
 
@@ -51,7 +51,7 @@ export default function Home() {
       {/* Footer Section */}
       <footer className="py-20 px-4 text-center border-t border-border/40 mt-auto">
         <div className="max-w-2xl mx-auto space-y-8">
-          <h2 className="font-serif text-3xl text-foreground">With love, D & E J</h2>
+          <h2 className="font-serif text-3xl text-foreground">With love, D & E</h2>
           <p className="text-muted-foreground text-sm uppercase tracking-widest">
             Kindly respond by July 15, 2025
           </p>
