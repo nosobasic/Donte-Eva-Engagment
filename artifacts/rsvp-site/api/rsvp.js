@@ -1,10 +1,8 @@
-// Server-side Google Sheets append (service account JWT).
-// Env: GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_PRIVATE_KEY, GOOGLE_SHEET_ID
-// Optional: GOOGLE_SHEET_TAB (default Sheet1)
+/** @typedef {{ name: string; email: string; attending: boolean; guestCount?: number | null; dietaryRestrictions?: string | null; message?: string | null }} RsvpBody */
 
 const SCOPE = "https://www.googleapis.com/auth/spreadsheets";
 
-function base64url(buf: Buffer): string {
+function base64url(buf) {
   return buf
     .toString("base64")
     .replace(/\+/g, "-")
@@ -12,7 +10,7 @@ function base64url(buf: Buffer): string {
     .replace(/=+$/, "");
 }
 
-async function importPrivateKey(pem: string): Promise<CryptoKey> {
+async function importPrivateKey(pem) {
   const pemContents = pem
     .replace(/-----BEGIN PRIVATE KEY-----/, "")
     .replace(/-----END PRIVATE KEY-----/, "")
@@ -27,13 +25,11 @@ async function importPrivateKey(pem: string): Promise<CryptoKey> {
   );
 }
 
-async function getAccessToken(): Promise<string> {
+async function getAccessToken() {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   const rawKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
   if (!email || !rawKey) {
-    throw new Error(
-      "GOOGLE_SERVICE_ACCOUNT_EMAIL and GOOGLE_PRIVATE_KEY must be set",
-    );
+    throw new Error("Google service account env vars are not set");
   }
 
   const now = Math.floor(Date.now() / 1000);
@@ -46,17 +42,13 @@ async function getAccessToken(): Promise<string> {
     exp: now + 3600,
   };
 
-  const encodedHeader = base64url(Buffer.from(JSON.stringify(header)));
-  const encodedClaim = base64url(Buffer.from(JSON.stringify(claim)));
-  const signingInput = `${encodedHeader}.${encodedClaim}`;
-
+  const signingInput = `${base64url(Buffer.from(JSON.stringify(header)))}.${base64url(Buffer.from(JSON.stringify(claim)))}`;
   const key = await importPrivateKey(rawKey);
   const signature = await crypto.subtle.sign(
     "RSASSA-PKCS1-v1_5",
     key,
     new TextEncoder().encode(signingInput),
   );
-
   const jwt = `${signingInput}.${base64url(Buffer.from(signature))}`;
 
   const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
@@ -69,24 +61,15 @@ async function getAccessToken(): Promise<string> {
   });
 
   if (!tokenRes.ok) {
-    const text = await tokenRes.text();
-    throw new Error(`Failed to get access token: ${text}`);
+    throw new Error(`Failed to get access token: ${await tokenRes.text()}`);
   }
 
-  const { access_token } = (await tokenRes.json()) as { access_token: string };
+  const { access_token } = await tokenRes.json();
   return access_token;
 }
 
-export type RsvpRowInput = {
-  name: string;
-  email: string;
-  attending: boolean;
-  guestCount?: number | null;
-  dietaryRestrictions?: string | null;
-  message?: string | null;
-};
-
-export async function appendRsvpRow(data: RsvpRowInput): Promise<void> {
+/** @param {RsvpBody} data */
+async function appendRsvpRow(data) {
   const sheetId = process.env.GOOGLE_SHEET_ID;
   if (!sheetId) throw new Error("GOOGLE_SHEET_ID is not set");
 
@@ -103,9 +86,7 @@ export async function appendRsvpRow(data: RsvpRowInput): Promise<void> {
       data.email,
       data.attending ? "Yes" : "No",
       data.attending && data.guestCount != null ? String(data.guestCount) : "",
-      data.attending && data.dietaryRestrictions
-        ? data.dietaryRestrictions
-        : "",
+      data.attending && data.dietaryRestrictions ? data.dietaryRestrictions : "",
       data.message ?? "",
     ],
   ];
@@ -123,7 +104,56 @@ export async function appendRsvpRow(data: RsvpRowInput): Promise<void> {
   });
 
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Failed to append row: ${res.status} ${text}`);
+    throw new Error(`Failed to append row: ${res.status} ${await res.text()}`);
+  }
+}
+
+/** @param {unknown} body @returns {RsvpBody | null} */
+function parseBody(body) {
+  if (!body || typeof body !== "object") return null;
+  const b = body;
+  if (typeof b.name !== "string" || !b.name.trim()) return null;
+  if (typeof b.email !== "string" || !b.email.includes("@")) return null;
+  if (typeof b.attending !== "boolean") return null;
+
+  return {
+    name: b.name.trim(),
+    email: b.email.trim(),
+    attending: b.attending,
+    guestCount: typeof b.guestCount === "number" ? b.guestCount : null,
+    dietaryRestrictions:
+      typeof b.dietaryRestrictions === "string" ? b.dietaryRestrictions : null,
+    message: typeof b.message === "string" ? b.message : null,
+  };
+}
+
+/** @param {import("@vercel/node").VercelRequest} req @param {import("@vercel/node").VercelResponse} res */
+export default async function handler(req, res) {
+  if (req.method === "OPTIONS") {
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    return res.status(204).end();
+  }
+
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  const data = parseBody(req.body);
+  if (!data) {
+    return res.status(400).json({ error: "Invalid RSVP data" });
+  }
+
+  try {
+    await appendRsvpRow(data);
+    return res.status(200).json({
+      success: true,
+      message: "RSVP received! We can't wait to celebrate with you.",
+    });
+  } catch (err) {
+    console.error("RSVP append failed:", err);
+    return res
+      .status(500)
+      .json({ error: "Failed to save your RSVP. Please try again." });
   }
 }
