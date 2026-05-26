@@ -9,8 +9,19 @@ const port = Number(process.env.PORT) || 5173;
 const basePath = process.env.BASE_PATH || "/";
 const repoRoot = path.resolve(import.meta.dirname, "../..");
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(async ({ mode }) => {
   const env = loadEnv(mode, repoRoot, "");
+
+  const replitPlugins =
+    isReplit && mode !== "production"
+      ? [
+          (await import("@replit/vite-plugin-runtime-error-modal")).default(),
+          (await import("@replit/vite-plugin-cartographer")).cartographer({
+            root: path.resolve(import.meta.dirname, ".."),
+          }),
+          (await import("@replit/vite-plugin-dev-banner")).devBanner(),
+        ]
+      : [];
 
   return {
   base: basePath,
@@ -18,15 +29,7 @@ export default defineConfig(({ mode }) => {
     react(),
     tailwindcss(),
     ...(mode === "development" ? [rsvpApiDevPlugin(env)] : []),
-    ...(isReplit && process.env.NODE_ENV !== "production"
-      ? [
-          await import("@replit/vite-plugin-runtime-error-modal").then((m) => m.default()),
-          await import("@replit/vite-plugin-cartographer").then((m) =>
-            m.cartographer({ root: path.resolve(import.meta.dirname, "..") })
-          ),
-          await import("@replit/vite-plugin-dev-banner").then((m) => m.devBanner()),
-        ]
-      : []),
+    ...replitPlugins,
   ],
   resolve: {
     alias: {
