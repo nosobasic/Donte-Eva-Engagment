@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { appendRsvpRow } from "../../../lib/google-sheets-append";
+import { appendRsvpRow } from "../../../lib/google-sheets-append.js";
 
 type RsvpBody = {
   name: string;
@@ -9,6 +9,17 @@ type RsvpBody = {
   dietaryRestrictions?: string | null;
   message?: string | null;
 };
+
+function optionalNumber(value: unknown): number | null {
+  if (value == null || value === "") return null;
+  if (typeof value === "number") return value;
+  return null;
+}
+
+function optionalString(value: unknown): string | null {
+  if (value == null || value === "") return null;
+  return typeof value === "string" ? value : null;
+}
 
 function parseBody(body: unknown): RsvpBody | null {
   if (!body || typeof body !== "object") return null;
@@ -20,14 +31,9 @@ function parseBody(body: unknown): RsvpBody | null {
     name: b.name.trim(),
     email: b.email.trim(),
     attending: b.attending,
-    guestCount:
-      typeof b.guestCount === "number" ? b.guestCount : b.guestCount ?? null,
-    dietaryRestrictions:
-      typeof b.dietaryRestrictions === "string"
-        ? b.dietaryRestrictions
-        : b.dietaryRestrictions ?? null,
-    message:
-      typeof b.message === "string" ? b.message : b.message ?? null,
+    guestCount: optionalNumber(b.guestCount),
+    dietaryRestrictions: optionalString(b.dietaryRestrictions),
+    message: optionalString(b.message),
   };
 }
 
