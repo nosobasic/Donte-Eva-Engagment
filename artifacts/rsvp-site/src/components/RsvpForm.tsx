@@ -2,7 +2,6 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { appendRsvpRow } from "@/lib/googleSheets";
 
 import {
   Form,
@@ -51,7 +50,15 @@ export default function RsvpForm() {
     setIsPending(true);
     setError(null);
     try {
-      await appendRsvpRow(values);
+      const res = await fetch("/api/rsvp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      });
+      const data = (await res.json()) as { success?: boolean; error?: string };
+      if (!res.ok) {
+        throw new Error(data.error ?? "Request failed");
+      }
       setIsSuccess(true);
     } catch (err) {
       console.error(err);
