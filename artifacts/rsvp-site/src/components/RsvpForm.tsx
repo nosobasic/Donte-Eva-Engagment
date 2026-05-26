@@ -62,7 +62,11 @@ export default function RsvpForm() {
       setIsSuccess(true);
     } catch (err) {
       console.error(err);
-      setError("There was an error submitting your RSVP. Please try again.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "There was an error submitting your RSVP. Please try again.",
+      );
     } finally {
       setIsPending(false);
     }

@@ -10,27 +10,59 @@ function base64url(buf) {
     .replace(/=+$/, "");
 }
 
+function normalizePrivateKey(raw) {
+  if (!raw) return "";
+  let key = raw.trim();
+  if (
+    (key.startsWith('"') && key.endsWith('"')) ||
+    (key.startsWith("'") && key.endsWith("'"))
+  ) {
+    key = key.slice(1, -1);
+  }
+  return key.replace(/\\n/g, "\n");
+}
+
+function missingEnvVars() {
+  const required = [
+    "GOOGLE_SERVICE_ACCOUNT_EMAIL",
+    "GOOGLE_PRIVATE_KEY",
+    "GOOGLE_SHEET_ID",
+  ];
+  return required.filter((name) => !process.env[name]?.trim());
+}
+
 async function importPrivateKey(pem) {
+  if (!pem.includes("BEGIN PRIVATE KEY")) {
+    throw new Error(
+      "private key must be PKCS#8 (-----BEGIN PRIVATE KEY-----). Use the key from your Google service account JSON.",
+    );
+  }
   const pemContents = pem
     .replace(/-----BEGIN PRIVATE KEY-----/, "")
     .replace(/-----END PRIVATE KEY-----/, "")
     .replace(/\s/g, "");
   const binaryDer = Buffer.from(pemContents, "base64");
-  return crypto.subtle.importKey(
-    "pkcs8",
-    binaryDer,
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
+  try {
+    return await crypto.subtle.importKey(
+      "pkcs8",
+      binaryDer,
+      { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+  } catch {
+    throw new Error("Unable to import private key — check GOOGLE_PRIVATE_KEY formatting");
+  }
 }
 
 async function getAccessToken() {
-  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const rawKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
-  if (!email || !rawKey) {
-    throw new Error("Google service account env vars are not set");
+  const missing = missingEnvVars();
+  if (missing.length) {
+    throw new Error(`Missing env: ${missing.join(", ")}`);
   }
+
+  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL.trim();
+  const rawKey = normalizePrivateKey(process.env.GOOGLE_PRIVATE_KEY);
 
   const now = Math.floor(Date.now() / 1000);
   const header = { alg: "RS256", typ: "JWT" };
@@ -120,19 +152,53 @@ function parseBody(body) {
     name: b.name.trim(),
     email: b.email.trim(),
     attending: b.attending,
-    guestCount: typeof b.guestCount === "number" ? b.guestCount : null,
+    guestCount:
+      typeof b.guestCount === "number"
+        ? b.guestCount
+        : typeof b.guestCount === "string" && b.guestCount !== ""
+          ? Number(b.guestCount)
+          : null,
     dietaryRestrictions:
       typeof b.dietaryRestrictions === "string" ? b.dietaryRestrictions : null,
     message: typeof b.message === "string" ? b.message : null,
   };
 }
 
+function clientErrorMessage(err) {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (msg.startsWith("Missing env:")) {
+    return "RSVP is not configured on the server. Please contact the hosts.";
+  }
+  if (msg.includes("Failed to get access token")) {
+    return "Google sign-in failed. Check the service account key in Vercel env vars.";
+  }
+  if (msg.includes("Unable to import") || msg.includes("private key")) {
+    return "Invalid Google private key format in server configuration.";
+  }
+  if (msg.includes("403") || msg.includes("permission")) {
+    return "Cannot write to the spreadsheet. Share the sheet with the service account email.";
+  }
+  if (msg.includes("404") || msg.includes("Unable to parse range")) {
+    return "Spreadsheet or tab name not found. Check GOOGLE_SHEET_ID and GOOGLE_SHEET_TAB.";
+  }
+  return "Failed to save your RSVP. Please try again.";
+}
+
 /** @param {import("@vercel/node").VercelRequest} req @param {import("@vercel/node").VercelResponse} res */
 export default async function handler(req, res) {
   if (req.method === "OPTIONS") {
-    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
     return res.status(204).end();
+  }
+
+  if (req.method === "GET") {
+    const missing = missingEnvVars();
+    return res.status(missing.length ? 503 : 200).json({
+      ok: missing.length === 0,
+      missing,
+      sheetTab: process.env.GOOGLE_SHEET_TAB || "Sheet1",
+    });
   }
 
   if (req.method !== "POST") {
@@ -152,8 +218,8 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error("RSVP append failed:", err);
-    return res
-      .status(500)
-      .json({ error: "Failed to save your RSVP. Please try again." });
+    const message = clientErrorMessage(err);
+    const status = message.includes("not configured") ? 503 : 500;
+    return res.status(status).json({ error: message });
   }
 }
