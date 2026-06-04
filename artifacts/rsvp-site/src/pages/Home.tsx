@@ -53,7 +53,7 @@ export default function Home() {
         <div className="max-w-2xl mx-auto space-y-8">
           <h2 className="font-serif text-3xl text-foreground">With love, D & E</h2>
           <p className="text-muted-foreground text-sm uppercase tracking-widest">
-            Kindly respond by July 15, 2025
+            Kindly respond by August 17, 2026
           </p>
           
         </div>
