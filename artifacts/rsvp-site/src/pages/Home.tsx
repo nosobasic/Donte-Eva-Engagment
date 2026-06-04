@@ -2,19 +2,41 @@ import * as React from "react";
 import RsvpForm from "@/components/RsvpForm";
 
 export default function Home() {
+  const heroVideoRef = React.useRef<HTMLVideoElement>(null);
+
+  React.useEffect(() => {
+    const video = heroVideoRef.current;
+    if (!video) return;
+    video.play().catch(() => {
+      /* autoplay may be blocked until user interaction */
+    });
+  }, []);
 
   return (
     <div className="min-h-[100dvh] w-full flex flex-col bg-background font-sans overflow-x-hidden selection:bg-primary/20">
       
       {/* Hero Section */}
-      <section className="relative min-h-[85vh] flex flex-col items-center justify-center text-center px-4 py-20">
-        <div className="absolute inset-0 w-full h-full opacity-60 mix-blend-multiply pointer-events-none">
-          <img 
-            src="/hero-floral.png" 
-            alt="Romantic floral background" 
-            className="w-full h-full object-cover object-center"
+      <section className="relative min-h-[85vh] flex flex-col items-center justify-center text-center px-4 py-20 overflow-hidden">
+        <div className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden>
+          <img
+            src="/hero-floral.png"
+            alt=""
+            className="absolute inset-0 z-0 w-full h-full object-cover object-center opacity-40 mix-blend-multiply motion-reduce:opacity-60"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/60 to-background" />
+          <video
+            ref={heroVideoRef}
+            autoPlay
+            loop
+            muted
+            playsInline
+            disablePictureInPicture
+            preload="auto"
+            poster="/hero-floral.png"
+            className="absolute inset-0 z-[1] w-full h-full object-cover object-center opacity-50 mix-blend-overlay motion-reduce:hidden"
+          >
+            <source src="/hero-video.mov" type="video/quicktime" />
+          </video>
+          <div className="absolute inset-0 z-[2] bg-gradient-to-b from-background/40 via-background/55 to-background" />
         </div>
 
         <div className="relative z-10 max-w-4xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000">
