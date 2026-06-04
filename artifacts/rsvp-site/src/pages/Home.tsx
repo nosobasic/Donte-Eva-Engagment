@@ -18,11 +18,6 @@ export default function Home() {
       {/* Hero Section */}
       <section className="relative min-h-[85vh] flex flex-col items-center justify-center text-center px-4 py-20 overflow-hidden">
         <div className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden>
-          <img
-            src="/hero-floral.png"
-            alt=""
-            className="absolute inset-0 z-0 w-full h-full object-cover object-center opacity-40 mix-blend-multiply motion-reduce:opacity-60"
-          />
           <video
             ref={heroVideoRef}
             autoPlay
@@ -32,11 +27,17 @@ export default function Home() {
             disablePictureInPicture
             preload="auto"
             poster="/hero-floral.png"
-            className="absolute inset-0 z-[1] w-full h-full object-cover object-center opacity-50 mix-blend-overlay motion-reduce:hidden"
+            className="absolute inset-0 z-0 h-full w-full object-cover object-center motion-reduce:opacity-0"
           >
+            <source src="/hero-video.mp4" type="video/mp4" />
             <source src="/hero-video.mov" type="video/quicktime" />
           </video>
-          <div className="absolute inset-0 z-[2] bg-gradient-to-b from-background/40 via-background/55 to-background" />
+          <img
+            src="/hero-floral.png"
+            alt=""
+            className="absolute inset-0 z-[1] h-full w-full object-cover object-center opacity-30 mix-blend-soft-light motion-reduce:opacity-70"
+          />
+          <div className="absolute inset-0 z-[2] bg-gradient-to-b from-background/25 via-background/45 to-background" />
         </div>
 
         <div className="relative z-10 max-w-4xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000">
