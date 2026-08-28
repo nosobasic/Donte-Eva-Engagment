@@ -1,5 +1,4 @@
 import * as React from "react";
-import RsvpForm from "@/components/RsvpForm";
 
 export default function Home() {
   const heroVideoRef = React.useRef<HTMLVideoElement>(null);
@@ -61,13 +60,20 @@ export default function Home() {
       {/* RSVP Section */}
       <section className="relative z-20 py-24 px-4 bg-background" id="rsvp">
         <div className="max-w-7xl mx-auto">
-          <div className="mb-16 text-center max-w-2xl mx-auto">
-            <p className="font-serif text-2xl md:text-3xl text-foreground italic leading-relaxed">
-              We would be honored to have you with us as we begin this new chapter.
+          <div className="text-center max-w-2xl mx-auto space-y-8">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary mx-auto mb-6">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-serif text-foreground">
+              RSVP Deadline Has Closed
+            </h2>
+            <p className="font-serif text-xl md:text-2xl text-muted-foreground italic leading-relaxed">
+              Thank you to everyone who has responded. We look forward to celebrating with you on September 5th!
             </p>
           </div>
-          
-          <RsvpForm />
         </div>
       </section>
 
@@ -76,7 +82,7 @@ export default function Home() {
         <div className="max-w-2xl mx-auto space-y-8">
           <h2 className="font-serif text-3xl text-foreground">With love, D & E</h2>
           <p className="text-muted-foreground text-sm uppercase tracking-widest">
-            Kindly respond by August 17, 2026
+            RSVP deadline was August 17, 2026
           </p>
           
         </div>
